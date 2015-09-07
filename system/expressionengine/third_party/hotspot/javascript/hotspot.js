@@ -1,14 +1,18 @@
 console.log('Hotspot called');
-$(document).ready(function() {
+(function($){
+//$(document).ready(function() {
+    console.log($);
 
-    // define the Assets global
+    // define the Hotspot global
     if (typeof window.Hotspot == 'undefined')
     {
         window.Hotspot = {};
     }
 
+    Hotspot.image = {};
     Hotspot.config = {
-        count: 0
+        count: 0,
+        entry_id: $('input[name=entry_id]').val()
     };
 
     Hotspot.generateButton = function(imageData) {
@@ -33,25 +37,35 @@ $(document).ready(function() {
         $button = $('<a/>', attributes);
         $button.bind('click', function() {
             var self = this;
-            Hotspot.triggerDialog(self);
+            Hotspot.triggerDialog();
         });
         return $button;
     };
 
-    Hotspot.triggerDialog  = function(button) {
-        var data, $dialogContent, template, hotspot;
+    Hotspot.triggerDialog  = function(event) {
+        var data, $dialogContent, template, hotspot, button, $field, field_id;
 
-        data = $(button).data();
+        data = $(event.currentTarget).data();
+        $field = $(event.currentTarget).closest('.publish_field');
+        field_id = $field.attr('id').replace('hold_field_', '');
+
+        Hotspot.config.field_id = field_id;
+        Hotspot.config.current = data;
 
         template = '<div class="hotspot-container">'
         +   '<div class="image-container" style="position: relative;">'
-        +   '<img src="' + Assets.siteUrl + '?ACT=41&file_id=' + data.id + '&size=800x600' + '" />'
+        +   '<img class="hotspot-image" style="display:block" src="' + Assets.siteUrl + '?ACT=41&file_id=' + data.id + '&size=800x600' + '" />'
         +   '<form>'
         +   '<input type="hidden" name="XID" value="'+ EE.XID +'" />'
-        +   '<input type="hidden" name="matrix_id" value="' + Hotspot.getRowId() + '" />'
+        +   '<input type="hidden" name="entry_id" value="'+ Hotspot.config.entry_id +'" />'
+        +   '<input type="hidden" name="asset_id" value="'+ data.id +'" />'
+        +   '<input type="hidden" name="field_id" value="'+ Hotspot.config.field_id +'" />'
         +   '</form>'
         +   '</div>'
-        +   '<div class="action-container"><a class="assets-btn" onclick="Hotspot.createHotspot();">Create Hotspot</a></div>'
+        +   '<div style="margin-top:10px" class="ui-helper-clearfix action-container">'
+        +   '<a class="assets-btn" onclick="Hotspot.createHotspot();">Create Hotspot</a>'
+        +   '<span class="success">Hotspots successfully saved!</span>'
+        +   '</div>'
         + '</div>';
 
 
@@ -63,10 +77,11 @@ $(document).ready(function() {
             .dialog({
                 autoOpen: false,
                 title: "Set Hotspots",
-                width: 950,
+                width:'auto',
                 open: function() {
                     console.log('Dialog open!')
                     Hotspot.getHotspots();
+                    Hotspot.getImageSize();
                 },
                 close: function() {
                     $(this).dialog('destroy').remove()
@@ -76,24 +91,34 @@ $(document).ready(function() {
 
     };
 
+    Hotspot.getImageSize = function() {
+        var $image;
+        $image = $('.hotspot-image');
+        $image.load(function() {
+            Hotspot.image.width = this.width;
+            Hotspot.image.height = this.height;
+        });
+    }
+
     Hotspot.getHotspots = function() {
         var data = {
             url: EE.BASE + "&C=addons_modules&M=show_module_cp&module=Hotspot&method=get",
             data: {
                 XID: EE.XID,
-                matrix_id: Hotspot.getRowId()
+                entry_id: Hotspot.config.entry_id,
+                asset_id: Hotspot.config.current.id,
+                field_id: Hotspot.config.field_id
             }
         }
         var $response = Hotspot.send(data);
         $response.done(function(response) {
 
-            Hotspot.config.count = Object.keys(response).length;;
-            if(Hotspot.config.count < 1) {
+            if(response.count < 1) {
                 console.log('No Hotspots yet added!');
                 return;
             }
 
-            $.each(response, function(i, item) {
+            $.each(response.items, function(i, item) {
                 Hotspot.createHotspot(item);
             });
         });
@@ -106,8 +131,8 @@ $(document).ready(function() {
         defaults = {
             title: 'Title #' + Hotspot.config.count,
             text: 'Text #' + Hotspot.config.count,
-            x: '20',
-            y: '20',
+            x: '50',
+            y: '50',
             symbol: 'plus'
         };
 
@@ -133,7 +158,7 @@ $(document).ready(function() {
                 current.symbol_ent =  '&#10133;';
         }
 
-        hotspot = '<div class="hotspot-spot" data-original-x="' + current.x + '" data-original-y="' + current.y + '" style="position: absolute;top: ' + current.y + 'px;left: ' + current.x + 'px;background:#fff;padding:5px;">'
+        hotspot = '<div class="hotspot-spot" data-original-x="' + current.x + '" data-original-y="' + current.y + '" style="position: absolute;top: ' + current.y + '%;left: ' + current.x + '%;background:#fff;padding:5px;">'
         + '<div class="hotspot-spot-symbol" onclick="Hotspot.toggleSpotbox()">' + current.symbol_ent + '</div>'
         + '<div class="hotspot-spot-box" style="display:none">'
             + '<div><label for="title">Title</label>'
@@ -144,7 +169,7 @@ $(document).ready(function() {
             + '<select name="hotspot['+ Hotspot.config.count +'][symbol]" onchange="Hotspot.changeSymbol(this)">' + symbols_options + '</select></div>'
             + '<div><label for="background">Background</label>'
             + '<select name="hotspot['+ Hotspot.config.count +'][background]">' + background_options + '</select></div>'
-            + '<div><input size="5" class="coord-x" name="hotspot['+ Hotspot.config.count +'][x]" value="' + current.x + '" /> x <input size="5" class="coord-y" name="hotspot['+ Hotspot.config.count +'][y]" value="' + current.y + '" /></div>'
+            + '<div><input size="5" data-dragged="0" class="coord coord-x" name="hotspot['+ Hotspot.config.count +'][x]" value="' + current.x + '" /> x <input size="5" data-dragged="0" class="coord coord-y" name="hotspot['+ Hotspot.config.count +'][y]" value="' + current.y + '" /></div>'
             + '<a class="assets-btn" onclick="Hotspot.save()">&#128190;</a>'
             + '<a class="assets-btn" onclick="Hotspot.removeHotspot()">&#9003;</a>'
             + '<a class="assets-btn" onclick="Hotspot.undoMove()">&#9100;</a>'
@@ -161,6 +186,7 @@ $(document).ready(function() {
 
                 // Show start dragged position of image.
                 var Startpos = $(this).position();
+                //Hotspot.convertToPercentage(Startpos);
                 $(this).find('.coord-x').val(Startpos.left);
                 $(this).find('.coord-y').val(Startpos.top);
                 //$("div#start").text("START: \nLeft: "+ Startpos.left + "\nTop: " + Startpos.top);
@@ -171,8 +197,13 @@ $(document).ready(function() {
 
                 // Show dropped position.
                 var Stoppos = $(this).position();
+                //Hotspot.convertToPercentage(Stoppos);
                 $(this).find('.coord-x').val(Stoppos.left);
+                $(this).find('.coord-x').data('dragged', 1);
+
                 $(this).find('.coord-y').val(Stoppos.top);
+                $(this).find('.coord-y').data('dragged', 1);
+
                 //$("div#stop").text("STOP: \nLeft: "+ Stoppos.left + "\nTop: " + Stoppos.top);
             }
         });
@@ -235,16 +266,60 @@ $(document).ready(function() {
         //Hotspot.save();
     };
 
+    Hotspot.resetDrag = function() {
+        $('.coord').data('dragged', 0);
+    };
+
     Hotspot.save = function() {
         var data, $form;
+
+        Hotspot.convertToPercentage();
+
         $form = $('.image-container').find('form');
 
         data = {
             url: EE.BASE + "&C=addons_modules&M=show_module_cp&module=Hotspot&method=store",
             data: $form.serialize()
         };
-        console.log(Hotspot.send(data));
+
+        Hotspot.send(data);
+
+        Hotspot.resetDrag();
+
         return false;
+    };
+
+    Hotspot.convertToPercentage = function(positions) {
+        var $coords, img_width, img_height;
+
+        img_width = Hotspot.image.width;
+        img_height = Hotspot.image.height;
+
+        $coords = $('.coord');
+        $coords.each(function(i, item) {
+            var value, perc, divider, was_dragged;
+            was_dragged = $(item).data('dragged');
+
+            console.log($(item).attr('name') + ': ' + was_dragged);
+            if($(item).data('dragged') == '0')
+                return;
+
+            value = $(item).val();
+            divider = img_width;
+            if($(item).hasClass('coord-y'))
+                divider = img_height;
+            perc = (value/divider) * 100
+            console.log(value + ' => ' + perc);
+            $(item).val(perc);
+        });
+        return;
+    }
+
+    Hotspot.convertFromPercentage = function(val) {
+        var $coords, img_width, img_height;
+
+        img_width = Hotspot.image.width;
+        img_height = Hotspot.image.height;
     }
 
     Hotspot.send = function(data) {
@@ -262,6 +337,8 @@ $(document).ready(function() {
 
     Hotspot.getRowId = function() {
         var str_id, raw_id;
+        if(typeof Hotspot.row === 'undefined')
+            return;
         str_id = Hotspot.row.row.id;
         raw_id = str_id.replace('row_id_', '');
         return raw_id;
@@ -274,19 +351,20 @@ $(document).ready(function() {
         return $tr.data();
     };
 
-    if(typeof Matrix !== 'undefined') {
-        Matrix.bind('assets', 'display', function (cell) {
-            var self = this, $field, imageData;
-            Hotspot.row = cell;
-
-            $field = $('.assets-field', self);
-            imageData = Hotspot.getImageInfoFromRow($field);
-
-            var $buttons = cell.dom.$td.find('.assets-buttons ');
-            var $button = Hotspot.generateButton(imageData);
-            $buttons.append($button);
-            return true;
-        });
-    }
-})
+    //if(typeof Matrix !== 'undefined') {
+    //    Matrix.bind('assets', 'display', function (cell) {
+    //        var self = this, $field, imageData;
+    //        Hotspot.row = cell;
+    //
+    //        $field = $('.assets-field', self);
+    //        imageData = Hotspot.getImageInfoFromRow($field);
+    //
+    //        var $buttons = cell.dom.$td.find('.assets-buttons ');
+    //        var $button = Hotspot.generateButton(imageData);
+    //        $buttons.append($button);
+    //        return true;
+    //    });
+    //}
+//})
+})(jQuery);
 console.log('Hotspot finished');

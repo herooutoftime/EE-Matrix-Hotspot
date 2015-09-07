@@ -89,8 +89,14 @@ class Hotspot_mcp {
   }
 
   public function get() {
-    $matrix_id = $this->EE->input->post('matrix_id');
-    $this->EE->db->where('matrix_id', $matrix_id);
+    $entry_id = $this->EE->input->post('entry_id');
+    $asset_id = $this->EE->input->post('asset_id');
+    $field_id = $this->EE->input->post('field_id');
+
+//    var_dump($entry_id);
+//    var_dump($asset_id);
+
+    $this->EE->db->where(array('entry_id' => $entry_id, 'asset_id' => $asset_id, 'field_id' => $field_id));
     $query = $this->EE->db->get('hotspots');
     $data = json_decode($query->row('data'), true);
 
@@ -101,28 +107,48 @@ class Hotspot_mcp {
 //      $data_arr[] = $spot;
 //    }
 
-    $this->EE->output->send_ajax_response($data);
+    $return = array(
+      'success' => true,
+      'items' => $data,
+      'count' => count($data),
+    );
+
+    $this->EE->output->send_ajax_response($return);
     return;
   }
 
   public function store()
   {
-    $matrix_id = $this->EE->input->post('matrix_id');
+    $entry_id = $this->EE->input->post('entry_id');
+    $asset_id = $this->EE->input->post('asset_id');
+    $field_id = $this->EE->input->post('field_id');
 
     $data = array(
-      'matrix_id' => $matrix_id,
+      'entry_id' => $entry_id,
+      'asset_id' => $asset_id,
+      'field_id' => $field_id,
       'data' => json_encode($this->EE->input->post('hotspot')),
     );
 
-    $this->EE->db->where('matrix_id', $matrix_id);
+    $this->EE->db->where(array(
+      'entry_id' => $entry_id,
+      'asset_id' => $asset_id,
+      'field_id' => $field_id,
+    ));
     $query = $this->EE->db->get('hotspots');
     if ($query->num_rows() > 0){
-      $this->EE->db->update('hotspots', $data, array('matrix_id' => $matrix_id));
+      $success = $this->EE->db->update('hotspots', $data, array('entry_id' => $entry_id, 'asset_id' => $asset_id, 'field_id' => $field_id));
     } else {
-      $this->EE->db->insert('hotspots', $data);
+      $success = $this->EE->db->insert('hotspots', $data);
     }
 
-    $this->EE->output->send_ajax_response($data);
+    $return = array(
+      'success' => $success,
+      'items' => $data,
+      'count' => count($data),
+    );
+
+    $this->EE->output->send_ajax_response($return);
     return;
   }
 

@@ -75,9 +75,21 @@ class Hotspot_upd
         'unsigned' => TRUE,
         'auto_increment'=> TRUE
       ),
-      'matrix_id' => array(
-        'type' => 'varchar',
-        'constraint' => '255',
+      'entry_id' => array(
+        'type' => 'int',
+        'constraint' => '11',
+        'default' => '',
+        'null' => FALSE,
+      ),
+      'field_id' => array(
+        'type' => 'int',
+        'constraint' => '11',
+        'default' => '',
+        'null' => FALSE,
+      ),
+      'asset_id' => array(
+        'type' => 'int',
+        'constraint' => '11',
         'default' => '',
         'null' => FALSE,
       ),
