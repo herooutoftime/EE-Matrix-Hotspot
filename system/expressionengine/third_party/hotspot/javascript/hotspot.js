@@ -71,12 +71,11 @@ console.log('Hotspot called');
 
 
         $dialogContent = $('<div/>').append(template);
-
         Hotspot.$dialog = $dialogContent
             //.load($link.attr('href'))
             .dialog({
                 autoOpen: false,
-                title: "Set Hotspots",
+                title: "Set Hotspots for " + data.file_name + " (" + data.id + ")",
                 width:'auto',
                 open: function() {
                     console.log('Dialog open!')
@@ -126,26 +125,50 @@ console.log('Hotspot called');
     }
 
     Hotspot.createHotspot = function(item) {
-        var hotspot, symbols = [], symbols_options = '', background = [], background_options = '', current, defaults;
+        var hotspot, symbols = [], symbols_options = '', backgrounds = [], background_options = '', statuses = [], status_options = '', positions = [], position_options = '', current, defaults, selected;
 
         defaults = {
             title: 'Title #' + Hotspot.config.count,
             text: 'Text #' + Hotspot.config.count,
             x: '50',
             y: '50',
-            symbol: 'plus'
+            symbol: 'plus',
+            status: 0,
+            position: 'top'
         };
 
         current = $.extend(defaults, item);
 
         symbols = ['plus', 'minus', 'check', 'remove'];
         for(var i=0;i<=symbols.length-1;i++) {
-            symbols_options += '<option value="' + symbols[i] + '">' + symbols[i] + '</option>';
+            selected = '';
+            if(current.symbol == symbols[i])
+                selected = 'selected';
+            symbols_options += '<option value="' + symbols[i] + '" ' + selected + '>' + symbols[i] + '</option>';
         }
 
-        background = ['black', 'white'];
-        for(var i=0;i<=background.length-1;i++) {
-            background_options += '<option value="' + background[i] + '">' + background[i] + '</option>';
+        backgrounds = ['black', 'white'];
+        for(var i=0;i<=backgrounds.length-1;i++) {
+            selected = '';
+            if(current.background == backgrounds[i])
+                selected = 'selected';
+            background_options += '<option value="' + backgrounds[i] + '" ' + selected + '>' + backgrounds[i] + '</option>';
+        }
+
+        positions = ['top', 'right', 'bottom', 'left'];
+        for(var i=0;i<=positions.length-1;i++) {
+            selected = '';
+            if(current.position == positions[i])
+                selected = 'selected';
+            position_options += '<option value="' + positions[i] + '" ' + selected + '>' + positions[i] + '</option>';
+        }
+
+        statuses = [0, 1];
+        for(var i=0;i<=statuses.length-1;i++) {
+            selected = '';
+            if(current.status == statuses[i])
+                selected = 'selected';
+            status_options += '<option value="' + statuses[i] + '" ' + selected + '>' + statuses[i] + '</option>';
         }
 
         switch (current.symbol) {
@@ -163,13 +186,24 @@ console.log('Hotspot called');
         + '<div class="hotspot-spot-box" style="display:none">'
             + '<div><label for="title">Title</label>'
             + '<input name="hotspot['+ Hotspot.config.count +'][title]" placeholder="Title" value="'+ current.title +'"/></div>'
+
             + '<div><label for="text">Text</label>'
             + '<input name="hotspot['+ Hotspot.config.count +'][text]" placeholder="Text" value="'+ current.text +'"/></div>'
+
             + '<div><label for="symbol">Symbol</label>'
             + '<select name="hotspot['+ Hotspot.config.count +'][symbol]" onchange="Hotspot.changeSymbol(this)">' + symbols_options + '</select></div>'
+
+            + '<div><label for="position">Position</label>'
+            + '<select name="hotspot['+ Hotspot.config.count +'][position]" onchange="">' + position_options + '</select></div>'
+
+            + '<div><label for="open">Open?</label>'
+            + '<select name="hotspot['+ Hotspot.config.count +'][status]" onchange="">' + status_options + '</select></div>'
+
             + '<div><label for="background">Background</label>'
             + '<select name="hotspot['+ Hotspot.config.count +'][background]">' + background_options + '</select></div>'
+
             + '<div><input size="5" data-dragged="0" class="coord coord-x" name="hotspot['+ Hotspot.config.count +'][x]" value="' + current.x + '" /> x <input size="5" data-dragged="0" class="coord coord-y" name="hotspot['+ Hotspot.config.count +'][y]" value="' + current.y + '" /></div>'
+
             + '<a class="assets-btn" onclick="Hotspot.save()">&#128190;</a>'
             + '<a class="assets-btn" onclick="Hotspot.removeHotspot()">&#9003;</a>'
             + '<a class="assets-btn" onclick="Hotspot.undoMove()">&#9100;</a>'
